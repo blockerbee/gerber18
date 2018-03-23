@@ -4,6 +4,7 @@
 #include <linux/kernel.h>
 #include <linux/fs.h>
 #include <linux/uaccess.h>
+#include <linux/string.h>
 
 #define DEVICE_NAME "charassign"
 #define CLASS_NAME "assign"
@@ -12,9 +13,10 @@ MODULE_DESCRIPTION("Character device driver");
 MODULE_LICENSE("GPL");
 
 static int majorNumber;
-static char message[1024]={0};//rethink on how to assign without 0
+static char message[1024]={};//rethink on how to assign without 0
 static short size_of_message;
 static int numberOpens = 0;
+static int lengthCounter=0;
 static struct class* charassignClass = NULL;
 static struct device* charassignDevice = NULL;
 
@@ -83,11 +85,24 @@ static int dev_open(struct inode *inodep, struct file *filep){
 //read function
 static ssize_t dev_read(struct file *filep,char *buffer, size_t len, loff_t *offset){
 	int error_count = 0;
+	//strncpy
 
 	error_count	= copy_to_user(buffer,message,size_of_message);
+
 	if(error_count==0){
-		printk(KERN_INFO "charassign Sent %d characters to the user\n",size_of_message);
+		printk(KERN_INFO "charassign Sent %d characters to the user\n",len);
+		char temp[1024]={};
+		strncpy(temp,buffer,len);
+		printk(KERN_INFO "Buffer Contents are %s",temp);
+
+		//find the free/used buffer size
 		//consider keeping track of the location of the message
+		//strncpy()
+		return (size_of_message=0);
+	}
+	else if(len>strlen(message)){
+		printk(KERN_INFO "charassign Sent %d characters to the user\n",strlen(message));
+		printk(KERN_INFO "Buffer contents are %s",buffer);
 		return (size_of_message=0);
 	}
 	else{
@@ -98,6 +113,12 @@ static ssize_t dev_read(struct file *filep,char *buffer, size_t len, loff_t *off
 
 //write function
 static ssize_t dev_write(struct file *filep, const char *buffer, size_t len,loff_t *offset ){
+	char buf[100] = {};
+	// if(len<(1024-lengthCounter))
+	// {
+	// 	strncpy(buf, message, offs)
+	// 	//buffer=strcat(buffer,)
+	// }
 	sprintf(message, "%s", buffer);
 	size_of_message=strlen(message);
 	printk(KERN_INFO "charassignDevice received %zu characters from the user\n", len);
